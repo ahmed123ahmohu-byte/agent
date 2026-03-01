@@ -1,51 +1,46 @@
-import sys
-import os
+import streamlit as st
+import asyncio
+from brain import SIMegyBrain # استيراد المحرك الذهني 
+from config import AGENT_NAME # استيراد الإعدادات [cite: 9, 11]
 
-class EgySimAgent:
-    def __init__(self):
-        self.name = "egysim"
-        self.version = "Ultimate 1.0"
+# إعدادات الصفحة
+st.set_page_config(page_title=f"{AGENT_NAME} Ultimate", page_icon="🚀", layout="wide")
 
-    def analyze_task(self, prompt):
-        # تحليل وتصنيف المهمة محلياً
-        if "كود" in prompt or "برمجة" in prompt:
-            return "DEVELOPMENT"
-        elif "أغنية" in prompt or "موسيقى" in prompt:
-            return "MUSIC"
-        else:
-            return "STRATEGY"
+# تصميم CSS مخصص ليشبه واجهة Gemini
+st.markdown("""
+    <style>
+    .stChatMessage { border-radius: 15px; padding: 10px; margin-bottom: 10px; }
+    .stChatInput { border-radius: 20px; }
+    h1 { color: #4285F4; text-align: center; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    def execute_production(self, task_type, prompt):
-        # توليد مخرجات بناءً على البروتوكول
-        output = f"## [قسم الإنتاج الأساسي - بواسطة {self.name}]\n"
-        
-        if task_type == "DEVELOPMENT":
-            output += "### 💻 مخرجات الكود النظيف\n"
-            output += "```python\n# [egysim] الإنتاج البرمجي المتقدم\ndef main():\n    print('Production Complete')\n\nif __name__ == '__main__':\n    main()\n```\n"
-        elif task_type == "MUSIC":
-            output += "### 🎵 إنتاج موسيقي (egysim Beats)\n"
-            output += "- العنوان: لحن الإبداع التقني\n- النوع: Synthwave\n- الهيكل: Verse -> Chorus -> Bridge\n"
+st.title(f"🚀 {AGENT_NAME} Ultimate Production Unit")
+st.markdown("---")
+
+# تهيئة المحرك والذاكرة
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    
+simegy = SIMegyBrain() # [cite: 12]
+
+# عرض الرسائل السابقة
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# مدخلات المستخدم
+if prompt := st.chat_input("بماذا يمكن لـ egysim أن يساعدك اليوم؟"):
+    # إضافة رسالة المستخدم
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # معالجة الطلب عبر المخ (Brain)
+    with st.chat_message("assistant"):
+        with st.spinner("جارٍ التحليل والإنتاج..."):
+            # تشغيل المعالجة غير المتزامنة [cite: 2]
+            response = asyncio.run(simegy.process_request(prompt))
+            st.markdown(response)
             
-        return output
-
-    def technical_review(self):
-        # مراجعة SIMegy التقنية (Canvas Mode)
-        review = "\n## [مراجعة egysim التقنية]\n"
-        review += "- ✅ فحص الأمان: لا توجد ثغرات مكتشفة.\n"
-        review += "- 🚀 كفاءة الأداء: تم تحسين العمليات للعمل بسرعة GitHub Actions.\n"
-        review += "- 🧠 تحليل المنطق: منطق الإنتاج متوافق مع معايير 'أعلى من العليا'.\n"
-        return review
-
-if __name__ == "__main__":
-    # استلام المدخلات من GitHub Actions
-    user_query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "إعداد النظام"
-    
-    agent = EgySimAgent()
-    task = agent.analyze_task(user_query)
-    
-    final_output = agent.execute_production(task, user_query)
-    final_output += agent.technical_review()
-    
-    # حفظ المخرجات في ملف لـ GitHub Actions لرفعه
-    with open("egysim_delivery.md", "w", encoding="utf-8") as f:
-        f.write(final_output)
+    st.session_state.messages.append({"role": "assistant", "content": response})
