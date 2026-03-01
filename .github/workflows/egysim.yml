@@ -1,34 +1,52 @@
-name: egysim Ultimate Production Engine
+name: egysim Ultimate Web Workflow
 
-on: 
+on:
   push:
-  issues:
-    types: [opened]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  egysim_production:
+  build-and-test:
     runs-on: ubuntu-latest
-    permissions: # إضافة صلاحيات الكتابة للرد على الـ Issues
-      issues: write
-      contents: write
-      
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4 # تحديث لـ v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5 # تحديث لـ v5
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Run egysim Engine
+      - name: 📦 Install Dependencies
         run: |
-          # تمرير عنوان الـ Issue أو رسالة الـ Commit كمحرك للوكيل
-          python app.py "${{ github.event.issue.title || github.event.head_commit.message }}"
+          pip install streamlit asyncio
+          # إضافة أي مكتبات أخرى يحتاجها brain.py أو config.py
 
-      - name: Upload Final Delivery
-        uses: actions/upload-artifact@v4 # الحل: تم التحديث من v3 إلى v4
+      - name: 🧠 Install & Setup Ollama
+        run: |
+          # تثبيت محرك Ollama على السيرفر (Linux)
+          curl -fsSL https://ollama.com/install.sh | sh
+          # تشغيل Ollama في الخلفية
+          ollama serve & 
+          sleep 5 # انتظار بدء الخدمة
+          # تحميل النموذج المحدد في الإعدادات 
+          ollama pull llama3 
+
+      - name: 🚀 Run egysim Web Internal Test
+        run: |
+          # اختبار تشغيل واجهة Streamlit في الخلفية للتأكد من عدم وجود أخطاء برمجية
+          nohup streamlit run app_web.py --server.headless true &
+          sleep 10
+          curl --fail http://localhost:8501 || exit 1
+
+      - name: 📤 Upload Production Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: egysim-delivery-artifact
-          path: egysim_delivery.md
-          retention-days: 5
+          name: egysim-web-package
+          path: |
+            app_web.py
+            brain.py
+            config.py
+            requirements.txt
