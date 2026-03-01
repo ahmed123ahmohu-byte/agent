@@ -1,52 +1,10 @@
-name: egysim Ultimate Web Workflow
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: 📦 Install Dependencies
+- name: 🚀 Run egysim Web Internal Test
         run: |
-          pip install streamlit asyncio
-          # إضافة أي مكتبات أخرى يحتاجها brain.py أو config.py
-
-      - name: 🧠 Install & Setup Ollama
-        run: |
-          # تثبيت محرك Ollama على السيرفر (Linux)
-          curl -fsSL https://ollama.com/install.sh | sh
-          # تشغيل Ollama في الخلفية
-          ollama serve & 
-          sleep 5 # انتظار بدء الخدمة
-          # تحميل النموذج المحدد في الإعدادات 
-          ollama pull llama3 
-
-      - name: 🚀 Run egysim Web Internal Test
-        run: |
-          # اختبار تشغيل واجهة Streamlit في الخلفية للتأكد من عدم وجود أخطاء برمجية
-          nohup streamlit run app_web.py --server.headless true &
-          sleep 10
-          curl --fail http://localhost:8501 || exit 1
-
-      - name: 📤 Upload Production Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: egysim-web-package
-          path: |
-            app_web.py
-            brain.py
-            config.py
-            requirements.txt
+          # تشغيل واجهة Streamlit مع تحديد المنفذ والارتباط بـ 0.0.0.0 لضمان الرؤية
+          nohup streamlit run app_web.py --server.port 8501 --server.address 0.0.0.0 --server.headless true &
+          
+          # استراتيجية الانتظار الذكي (Retry Loop)
+          echo "Waiting for Streamlit to start..."
+          timeout 60s bash -c 'until curl -sf http://localhost:8501; do sleep 5; done' || (echo "Streamlit failed to start" && exit 1)
+          
+          echo "egysim Web is Up and Running!"
