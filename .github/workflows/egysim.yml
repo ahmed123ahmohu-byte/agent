@@ -1,0 +1,26 @@
+name: egysim Ultimate Local Agent
+
+on: [push, issues]
+
+jobs:
+  egysim_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run egysim Agent
+        run: |
+          # تشغيل الوكيل مع تمرير رسالة الـ Commit كمدخلات
+          python app.py "${{ github.event.head_commit.message || 'Initial Run' }}"
+
+      - name: Archive Production Delivery
+        uses: actions/upload-artifact@v3
+        with:
+          name: egysim-Final-Delivery
+          path: egysim_delivery.md
