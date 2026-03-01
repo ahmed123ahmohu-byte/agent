@@ -1,10 +1,33 @@
-- name: 🚀 Run egysim Web Internal Test
+name: egysim Ultimate Deployment
+
+on: [push]
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Tools
         run: |
-          # تشغيل واجهة Streamlit مع تحديد المنفذ والارتباط بـ 0.0.0.0 لضمان الرؤية
+          pip install streamlit asyncio
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve & 
+          sleep 10
+          ollama pull tinyllama # نسخة سريعة جداً للتيست
+
+      - name: Launch & Verify Web UI
+        run: |
           nohup streamlit run app_web.py --server.port 8501 --server.address 0.0.0.0 --server.headless true &
-          
-          # استراتيجية الانتظار الذكي (Retry Loop)
-          echo "Waiting for Streamlit to start..."
-          timeout 60s bash -c 'until curl -sf http://localhost:8501; do sleep 5; done' || (echo "Streamlit failed to start" && exit 1)
-          
-          echo "egysim Web is Up and Running!"
+          echo "Waiting for egysim to wake up..."
+          timeout 60s bash -c 'until curl -sf http://localhost:8501; do sleep 5; done'
+          echo "egysim is Online!"
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: egysim-Final-Package
+          path: .
